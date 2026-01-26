@@ -1,4 +1,3 @@
-import APIFeaturesInterface from 'src/interfaces/apiFeatures.interface';
 import IQuery from 'src/interfaces/query.interface';
 // import IPayload from 'src/interfaces/payload.interface';
 // import generateApiFilter from './generateApiFilter';
@@ -34,32 +33,40 @@ class APIFeatures<T extends Document> {
   filter() {
     const queryObj = { ...this.queryString };
 
-    console.log({ queryObj });
-
     const excludedFields = ['page', 'sort', 'limit', 'fields'];
     excludedFields.forEach((el) => delete queryObj[el]);
 
     const filter = Object.entries(queryObj).reduce((acc, [key, value]) => {
       //  queryObj: { role: 'admin', 'age[gte]': '20', 'age[lte]': '30' } }
 
-      const params = {
-        '[gte]': '$gte',
-        '[gt]': '$gt',
-        '[lte]': '$lte',
-        '[lt]': '$lt',
-      };
+      const params = { gte: '$gte', gt: '$gt', lte: '$lte', lt: '$lt' };
 
-      if (key.includes('gte'))
-        if (params[key]) {
-          acc[params[key]] = value;
-        } else {
-          acc[key] = { $in: value.split(',') };
-        }
+      if (
+        key.includes('gte') ||
+        key.includes('gt') ||
+        key.includes('lte') ||
+        key.includes('lt')
+      ) {
+        const match = key.match(/\[(.*?)\]/);
+
+        const operator = match ? match[1] : null;
+
+        if (!operator) return;
+
+        const [field] = key.split(`[${operator}]`);
+
+        if (!acc[field]) acc[field] = {};
+
+        if (!params[operator]) return;
+
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        acc[field][params[operator]] = value;
+      } else {
+        acc[key] = { $in: value.split(',') };
+      }
 
       return acc;
     }, {});
-
-    console.log({ filter });
 
     this.query = this.query.find(filter);
     return this;
@@ -97,15 +104,6 @@ class APIFeatures<T extends Document> {
     // this.queryString.limit = limit;
 
     return this;
-  }
-
-  private advancedFilter(payload: any): any {
-    const params = { gte: '$gte', gt: '$gt', lte: '$lte', lt: '$lt' };
-
-    return Object.keys(payload).reduce((acc, key) => {
-      if (params[key]) acc[params[key]] = payload[key];
-      return acc;
-    }, {});
   }
 }
 

@@ -1,11 +1,9 @@
 import APIFeatures from './apiFeatures.utils';
 import IQuery from '../src/interfaces/query.interface';
 
-import IPayload from '../src/interfaces/payload.interface';
-
 import { NotFoundException } from '@nestjs/common';
 
-import { Model, Document, FilterQuery } from 'mongoose';
+import { Model, Document } from 'mongoose';
 
 export const getAll = async <T extends Document>(
   model: Model<T>,
@@ -24,17 +22,15 @@ export const getAll = async <T extends Document>(
   // .range()
   // .relations().payload;
 
-  console.log({ model, payload });
-
   // console.log(JSON.stringify(payload));
 
   const limit = query.limit ? +query.limit : 10;
 
   const page = query.page ? +query.page : 1;
 
-  const result = await model.find(payload);
+  const result = await model.find(payload.query);
 
-  const count = await model.countDocuments(payload);
+  const count = await model.countDocuments(payload.query);
 
   const pages = Math.ceil(count / +limit);
 
