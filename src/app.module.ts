@@ -17,7 +17,6 @@ import { PostModule } from './post/post.module';
     }),
 
     UserModule,
-
     PostModule,
   ],
   controllers: [],

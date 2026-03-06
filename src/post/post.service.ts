@@ -4,16 +4,19 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { BaseCrudService } from 'utils/base-crud.service'; // Adjust path as needed
 import { Post, PostDocument } from './schemas/post.schema';
-import { CreatePostDto } from './dto/create-post.dto';
-import { UpdatePostDto } from './dto/update-post.dto';
+import { CreatePostUpdated } from './dto/create-post-update.dto';
 
 @Injectable()
-export class PostService extends BaseCrudService<
-  PostDocument,
-  CreatePostDto,
-  UpdatePostDto
-> {
+export class PostService extends BaseCrudService<PostDocument> {
   constructor(@InjectModel(Post.name) postModel: Model<PostDocument>) {
     super(postModel);
+  }
+
+  findAllUpdate() {
+    return 'Fimd all updated!';
+  }
+
+  createOneUpdate(updatePostDto: CreatePostUpdated) {
+    return updatePostDto;
   }
 }

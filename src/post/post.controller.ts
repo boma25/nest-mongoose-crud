@@ -1,21 +1,57 @@
-import { Controller } from '@nestjs/common';
-
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  UsePipes,
+  ValidationPipe,
+} from '@nestjs/common';
+import { createCrudController } from 'utils/create-crud.controller.utils';
 import { PostService } from './post.service';
-
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
+import { LogRequest1Interceptor } from './interceptors/log-request-1/log-request-1.interceptor';
+import { LogRequest2Interceptor } from './interceptors/log-request-2/log-request-2.interceptor';
+import { LogRequest1Guard } from './guards/log-request-1/log-request-1.guard';
+import { CreatePostUpdated } from './dto/create-post-update.dto';
+import { LogRequest2Guard } from './guards/log-request-1/log-request-2.guard';
 
-import { createCrudController } from 'utils/create-crud.controller.utils';
-import { PostDocument } from './schemas/post.schema';
+const PostControllerBase = createCrudController({
+  create: {
+    dto: CreatePostDto,
+    interceptors: [LogRequest1Interceptor, LogRequest2Interceptor],
+  },
 
-const CrudController = createCrudController({
-  create: { dto: CreatePostDto },
-  update: { dto: UpdatePostDto },
+  update: {
+    dto: UpdatePostDto,
+  },
+
+  getAll: {
+    guards: [LogRequest1Guard, LogRequest2Guard],
+    interceptors: [LogRequest1Interceptor, LogRequest2Interceptor],
+  },
 });
 
 @Controller('posts')
-export class PostController extends CrudController<PostDocument> {
-  constructor(protected readonly service: PostService) {
-    super();
+export class PostController extends PostControllerBase {
+  constructor(private service: PostService) {
+    super(service); // Pass service to parent constructor
+  }
+
+  @Get()
+  findAll() {
+    return this.service.findAllUpdate();
+  }
+
+  @Post()
+  @UsePipes(
+    new ValidationPipe({
+      transform: true,
+      whitelist: true,
+      forbidNonWhitelisted: true,
+    }),
+  )
+  create(@Body() dto: CreatePostUpdated) {
+    return this.service.createOneUpdate(dto);
   }
 }

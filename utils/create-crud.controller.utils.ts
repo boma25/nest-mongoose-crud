@@ -1,76 +1,163 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import {
-  Body,
+  Put,
+  Get,
   Post,
+  Body,
+  Type,
   Patch,
   Param,
+  Query,
+  Delete,
   UsePipes,
+  HttpCode,
   UseGuards,
+  HttpStatus,
   ValidationPipe,
   applyDecorators,
   UseInterceptors,
 } from '@nestjs/common';
 
 import { Document } from 'mongoose';
-import { CrudOptions } from './interfaces/crud-options.interface';
-import { BaseCrudController } from './base-crud.controller';
+import { BaseCrudService } from './base-crud.service';
+import type IQuery from './interfaces/query.interface';
 
-export function createCrudController(options: CrudOptions) {
-  abstract class CrudController<
-    T extends Document,
-  > extends BaseCrudController<T> {
-    /*
-     * CREATE
-     */
-    @Post()
-    @UsePipes(
-      new ValidationPipe({
-        whitelist: true,
-        transform: true,
-        forbidNonWhitelisted: true,
-      }),
-    )
-    @applyCrudMethodOptions(options.create)
-    async create(@Body() payload: any) {
-      return super.create(payload);
-    }
-
-    /*
-     * UPDATE
-     */
-    @Patch(':id')
-    @UsePipes(
-      new ValidationPipe({
-        whitelist: true,
-        transform: true,
-        forbidNonWhitelisted: true,
-      }),
-    )
-    @applyCrudMethodOptions(options.update)
-    async update(@Param('id') id: string, @Body() payload: any) {
-      return super.update(id, payload);
-    }
-  }
-
-  return CrudController as abstract new <T extends Document>(
-    ...args: any[]
-  ) => BaseCrudController<T>;
-}
-
-function applyCrudMethodOptions(config?: {
+export interface EndpointConfig {
+  dto?: Type<any>;
   guards?: any[];
   interceptors?: any[];
-}) {
-  if (!config) return applyDecorators();
+  pipes?: any[];
+  status?: HttpStatus;
+  enabled?: boolean;
+  validationOptions?: {
+    transform?: boolean;
+    whitelist?: boolean;
+    forbidNonWhitelisted?: boolean;
+  };
+}
 
+export interface CrudControllerConfig {
+  create?: EndpointConfig;
+  update?: EndpointConfig;
+  delete?: EndpointConfig;
+  getAll?: EndpointConfig;
+  getOne?: EndpointConfig;
+  global?: {
+    guards?: any[];
+    interceptors?: any[];
+    pipes?: any[];
+  };
+}
+
+function applyEndpointDecorators(config?: EndpointConfig) {
   const decorators: any[] = [];
 
-  if (config.guards?.length) {
+  if (config?.guards?.length) {
     decorators.push(UseGuards(...config.guards));
   }
 
-  if (config.interceptors?.length) {
+  if (config?.interceptors?.length) {
     decorators.push(UseInterceptors(...config.interceptors));
   }
 
-  return applyDecorators(...decorators);
+  if (config?.pipes?.length) {
+    decorators.push(UsePipes(...config.pipes));
+  }
+
+  if (config?.dto) {
+    decorators.push(
+      UsePipes(
+        new ValidationPipe({
+          transform: true,
+          whitelist: true,
+          forbidNonWhitelisted: true,
+          ...config.validationOptions,
+        }),
+      ),
+    );
+  }
+
+  if (config?.status) {
+    decorators.push(HttpCode(config.status));
+  }
+
+  return decorators.length ? applyDecorators(...decorators) : () => {};
+}
+
+export function createCrudController<T extends Document>(
+  config: CrudControllerConfig = {},
+): Type<any> {
+  class BaseController {
+    constructor(protected readonly service: BaseCrudService<T>) {}
+
+    @Get()
+    @applyEndpointDecorators(config.getAll)
+    async findAll(@Query() query: IQuery) {
+      return this.service.findAll(query);
+    }
+
+    @Get(':id')
+    @applyEndpointDecorators(config.getOne)
+    async getOne(@Param('id') id: string, @Query() query: Partial<IQuery>) {
+      return this.service.find(id, query);
+    }
+
+    @Post()
+    @applyEndpointDecorators(config.create)
+    async create(
+      @Body(
+        new ValidationPipe({
+          transform: true,
+          whitelist: true,
+          forbidNonWhitelisted: true,
+          expectedType: config.create?.dto,
+        }),
+      )
+      payload: any,
+    ) {
+      return this.service.createOne(payload);
+    }
+
+    @Put(':id')
+    @applyEndpointDecorators(config.update)
+    async update(
+      @Param('id') id: string,
+      @Body(
+        new ValidationPipe({
+          transform: true,
+          whitelist: true,
+          forbidNonWhitelisted: true,
+          expectedType: config.update?.dto,
+        }),
+      )
+      payload: any,
+    ) {
+      return this.service.updateOne(id, payload);
+    }
+
+    @Patch(':id')
+    @applyEndpointDecorators(config.update)
+    async patch(
+      @Param('id') id: string,
+      @Body(
+        new ValidationPipe({
+          transform: true,
+          whitelist: true,
+          forbidNonWhitelisted: true,
+          expectedType: config.update?.dto,
+        }),
+      )
+      payload: any,
+    ) {
+      return this.service.updateOne(id, payload);
+    }
+
+    @Delete(':id')
+    @applyEndpointDecorators(config.delete)
+    async delete(@Param('id') id: string) {
+      return this.service.deleteOne(id);
+    }
+  }
+
+  return BaseController;
 }

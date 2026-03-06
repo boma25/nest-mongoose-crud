@@ -14,7 +14,7 @@ export abstract class BaseCrudService<
   /**
    * Get all documents with filtering, pagination, sorting
    */
-  async getAll(query: IQuery) {
+  async findAll(query: IQuery) {
     const payload = new APIFeatures(this.model.find(), query)
       .filter()
       .search()
@@ -45,7 +45,7 @@ export abstract class BaseCrudService<
   /**
    * Get a single document by ID
    */
-  async getOne(id: string, query: Partial<IQuery> = {}) {
+  async findOne(id: string, query: Partial<IQuery> = {}) {
     const payload = new APIFeatures(this.model.find({ _id: id }), query)
       .filter()
       .populate();
@@ -113,7 +113,7 @@ export abstract class BaseCrudService<
   /**
    * Find one document by custom filter
    */
-  async findOne(filter: any = {}, query: Partial<IQuery> = {}) {
+  async findOneBy(filter: any = {}, query: Partial<IQuery> = {}) {
     const payload = new APIFeatures(this.model.find(filter), query)
       .filter()
       .populate()

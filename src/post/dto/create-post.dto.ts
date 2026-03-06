@@ -9,7 +9,7 @@ import {
   IsMongoId,
   IsNotEmpty,
   IsOptional,
-  ValidateNested,
+  IsObject,
 } from 'class-validator';
 
 import { Type } from 'class-transformer';
@@ -93,7 +93,7 @@ export class CreatePostDto {
   metaDescription?: string;
 
   @IsOptional()
-  @ValidateNested()
+  @IsObject()
   @Type(() => Object)
   metadata?: Record<string, any>;
 }

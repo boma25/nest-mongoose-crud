@@ -1,12 +1,12 @@
 import { Type } from '@nestjs/common';
 
-export interface CrudMethodOptions {
-  dto?: Type<any>;
+export interface CrudMethodOptions<TDto> {
+  dto?: Type<TDto>;
   guards?: any[];
   interceptors?: any[];
 }
 
-export interface CrudOptions {
-  create?: CrudMethodOptions;
-  update?: CrudMethodOptions;
+export interface CrudOptions<C, U> {
+  create?: CrudMethodOptions<C>;
+  update?: CrudMethodOptions<U>;
 }
